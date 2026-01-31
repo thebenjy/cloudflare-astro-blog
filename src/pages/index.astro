@@ -1,0 +1,49 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { readdir } from 'node:fs/promises';
+import { join } from 'node:path';
+
+// Read all blog posts from content directory
+const contentDir = './src/content/posts';
+let posts = [];
+
+try {
+  const files = await readdir(contentDir);
+  const postFiles = files.filter(f => f.endsWith('.json'));
+
+  for (const file of postFiles) {
+    const content = await import(`../content/posts/${file}`);
+    posts.push(content.default);
+  }
+
+  // Sort by date, newest first
+  posts.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+} catch (e) {
+  console.log('No posts directory yet');
+}
+---
+
+<Layout title="My Blog - Home">
+  <h1>Latest Posts</h1>
+
+  {posts.length === 0 ? (
+    <p>No posts yet. Run <code>python scripts/generate_post.py</code> to create your first post!</p>
+  ) : (
+    <ul class="post-list">
+      {posts.slice(0, 10).map(post => (
+        <li class="post-item">
+          <h2><a href={`/posts/${post.slug}`}>{post.title}</a></h2>
+          <div class="post-meta">
+            Published on {new Date(post.publishedAt).toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </div>
+          <p class="post-excerpt">{post.excerpt}</p>
+          <a href={`/posts/${post.slug}`} class="read-more">Read More →</a>
+        </li>
+      ))}
+    </ul>
+  )}
+</Layout>
