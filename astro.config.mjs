@@ -1,10 +1,8 @@
 import { defineConfig } from 'astro/config';
-import cloudflare from '@astrojs/cloudflare';
 
 export default defineConfig({
   output: 'static',
-  site: 'https://your-blog.pages.dev',
-  adapter: cloudflare(),
+  site: 'https://cloudflare-astro-blog.pages.dev',
   build: {
     format: 'directory'
   }
