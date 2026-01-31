@@ -2,18 +2,55 @@
 import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="About - My Blog">
-  <h1>About This Blog</h1>
+<Layout title="About - My Blog" description="Learn more about this blog and its author">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content">
+          <h1 class="title is-2">About</h1>
 
-  <p>Welcome to my blog! This is a modern, automated blogging platform built with:</p>
+          <div class="box">
+            <h2 class="title is-4">Welcome!</h2>
+            <p class="is-size-5">
+              This is a simple, fast blog built with modern web technologies.
+            </p>
+          </div>
 
-  <ul>
-    <li><strong>Astro</strong> - Fast, static site generation</li>
-    <li><strong>Hono</strong> - Lightweight API for comments</li>
-    <li><strong>Cloudflare Pages</strong> - Free, fast hosting</li>
-    <li><strong>Cloudflare D1</strong> - Serverless SQLite database</li>
-    <li><strong>Python</strong> - Content generation automation</li>
-  </ul>
+          <div class="notification is-info is-light">
+            <h3 class="title is-5">Tech Stack</h3>
+            <div class="content">
+              <ul>
+                <li><strong>Astro</strong> - Static site generation</li>
+                <li><strong>Bulma</strong> - CSS framework</li>
+                <li><strong>Cloudflare Pages</strong> - Hosting</li>
+                <li><strong>Cloudflare Workers</strong> - API endpoints</li>
+                <li><strong>D1 Database</strong> - Comments storage</li>
+              </ul>
+            </div>
+          </div>
 
-  <p>The entire setup costs just $10/year for the domain!</p>
+          <div class="box">
+            <h3 class="title is-5">Features</h3>
+            <div class="content">
+              <ul>
+                <li>⚡ Lightning-fast static site generation</li>
+                <li>💬 Dynamic comments via Cloudflare Workers API</li>
+                <li>📱 Fully responsive design</li>
+                <li>♿ Accessible and semantic HTML</li>
+                <li>🔍 SEO optimized</li>
+                <li>💰 Costs only $10/year (just the domain!)</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="box">
+            <h3 class="title is-5">Contact</h3>
+            <p>
+              Feel free to reach out via the comments on any post, or connect with me on social media.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </Layout>
