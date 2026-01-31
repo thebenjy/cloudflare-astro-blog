@@ -4,122 +4,256 @@ import { readdir } from 'node:fs/promises';
 
 export async function getStaticPaths() {
   const contentDir = './src/content/posts';
-  let posts = [];
 
   try {
     const files = await readdir(contentDir);
-    const postFiles = files.filter(f => f.endsWith('.json'));
+    const postFiles = files.filter(f => f.endsWith('.md'));
 
-    for (const file of postFiles) {
-      const content = await import(`../../content/posts/${file}`);
-      posts.push(content.default);
-    }
-  } catch (e) {
-    console.log('No posts directory yet');
+    return postFiles.map(file => ({
+      params: { slug: file.replace('.md', '') }
+    }));
+  } catch (error) {
+    console.error('Error reading posts:', error);
+    return [];
   }
-
-  return posts.map(post => ({
-    params: { slug: post.slug },
-    props: { post }
-  }));
 }
 
-const { post } = Astro.props;
-const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://your-blog-api.workers.dev';
+const { slug } = Astro.params;
+
+let post;
+let Content;
+
+try {
+  const module = await import(`../../content/posts/${slug}.md`);
+  post = {
+    ...module.frontmatter,
+    publishedAt: new Date(module.frontmatter.publishedAt)
+  };
+  Content = module.Content;
+} catch (error) {
+  return Astro.redirect('/404');
+}
+
+const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://your-worker.workers.dev';
 ---
 
 <Layout 
-  title={post.title} 
-  description={post.excerpt}
-  publishedAt={post.publishedAt}
+  title={`${post.title} - My Blog`}
+  description={post.excerpt || post.title}
 >
-  <article>
-    <header class="post-header">
-      <h1 class="post-title">{post.title}</h1>
-      <div class="post-meta">
-        Published on {new Date(post.publishedAt).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long', 
-          day: 'numeric'
-        })}
-        {post.author && ` by ${post.author}`}
-      </div>
-    </header>
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <!-- Post Header -->
+        <article class="box">
+          <header class="mb-5">
+            <h1 class="title is-2">{post.title}</h1>
 
-    <div class="post-content" set:html={post.content} />
-  </article>
+            <div class="post-meta">
+              <span class="icon-text">
+                <span class="icon">
+                  <i class="fas fa-calendar"></i>
+                </span>
+                <span>
+                  {post.publishedAt.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </span>
+              </span>
 
-  <section class="comments-section">
-    <h2>Comments</h2>
-
-    <form class="comment-form" id="comment-form">
-      <input type="text" name="author" placeholder="Your Name" required>
-      <input type="email" name="email" placeholder="Your Email (optional)">
-      <textarea name="text" rows="5" placeholder="Your Comment" required></textarea>
-      <button type="submit">Submit Comment</button>
-    </form>
-
-    <div id="comments-list">
-      <p>Loading comments...</p>
-    </div>
-  </section>
-
-  <script define:vars={{ slug: post.slug, apiUrl }}>
-    // Load comments
-    async function loadComments() {
-      try {
-        const response = await fetch(`${apiUrl}/api/comments?slug=${slug}`);
-        const data = await response.json();
-
-        const commentsList = document.getElementById('comments-list');
-
-        if (data.comments.length === 0) {
-          commentsList.innerHTML = '<p>No comments yet. Be the first to comment!</p>';
-        } else {
-          commentsList.innerHTML = data.comments.map(comment => `
-            <div class="comment">
-              <div class="comment-author">${comment.author_name}</div>
-              <div class="comment-date">${new Date(comment.created_at).toLocaleString()}</div>
-              <div class="comment-text">${comment.comment_text}</div>
+              {post.author && (
+                <span class="icon-text ml-4">
+                  <span class="icon">
+                    <i class="fas fa-user"></i>
+                  </span>
+                  <span>{post.author}</span>
+                </span>
+              )}
             </div>
-          `).join('');
-        }
-      } catch (error) {
-        document.getElementById('comments-list').innerHTML = '<p>Failed to load comments.</p>';
-      }
-    }
 
-    // Submit comment
-    document.getElementById('comment-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
+            {post.tags && post.tags.length > 0 && (
+              <div class="tags mt-3">
+                {post.tags.map((tag) => (
+                  <span class="tag is-primary is-light">{tag}</span>
+                ))}
+              </div>
+            )}
+          </header>
 
-      const formData = new FormData(e.target);
-      const data = {
-        slug: slug,
-        author: formData.get('author'),
-        email: formData.get('email'),
-        text: formData.get('text')
-      };
+          <!-- Post Content -->
+          <div class="content">
+            <Content />
+          </div>
+        </article>
 
-      try {
-        const response = await fetch(`${apiUrl}/api/comments`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
+        <!-- Comments Section -->
+        <div class="box mt-5">
+          <h2 class="title is-4 mb-4">Comments</h2>
 
-        if (response.ok) {
-          alert('Comment submitted successfully!');
-          e.target.reset();
-          loadComments();
-        } else {
-          alert('Failed to submit comment');
-        }
-      } catch (error) {
-        alert('Error submitting comment');
-      }
-    });
+          <!-- Comment Form -->
+          <div class="box has-background-light">
+            <form id="comment-form">
+              <div class="field">
+                <label class="label" for="name">Name *</label>
+                <div class="control has-icons-left">
+                  <input 
+                    class="input" 
+                    type="text" 
+                    id="name" 
+                    name="name" 
+                    required 
+                    placeholder="Your name"
+                  />
+                  <span class="icon is-small is-left">
+                    <i class="fas fa-user"></i>
+                  </span>
+                </div>
+              </div>
 
-    loadComments();
-  </script>
+              <div class="field">
+                <label class="label" for="email">Email (optional, not displayed)</label>
+                <div class="control has-icons-left">
+                  <input 
+                    class="input" 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    placeholder="your@email.com"
+                  />
+                  <span class="icon is-small is-left">
+                    <i class="fas fa-envelope"></i>
+                  </span>
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label" for="comment">Comment *</label>
+                <div class="control">
+                  <textarea 
+                    class="textarea" 
+                    id="comment" 
+                    name="comment" 
+                    required 
+                    rows="4"
+                    placeholder="Share your thoughts..."
+                  ></textarea>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="control">
+                  <button type="submit" class="button is-primary" id="submit-btn">
+                    <span class="icon">
+                      <i class="fas fa-comment"></i>
+                    </span>
+                    <span>Post Comment</span>
+                  </button>
+                </div>
+              </div>
+
+              <div id="form-message"></div>
+            </form>
+          </div>
+
+          <!-- Comments List -->
+          <div id="comments-list" class="mt-5">
+            <div class="has-text-centered">
+              <button class="button is-loading is-ghost">Loading comments...</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </Layout>
+
+<script define:vars={{ slug, apiUrl }}>
+  // Fetch and display comments
+  async function loadComments() {
+    const list = document.getElementById('comments-list');
+
+    try {
+      const res = await fetch(`${apiUrl}/api/comments?slug=${slug}`);
+      const data = await res.json();
+
+      if (!data.comments || data.comments.length === 0) {
+        list.innerHTML = '<p class="has-text-grey-light">No comments yet. Be the first to comment!</p>';
+        return;
+      }
+
+      list.innerHTML = data.comments.map(c => `
+        <article class="media mb-4">
+          <div class="media-content">
+            <div class="content">
+              <p>
+                <strong>${escapeHtml(c.name)}</strong>
+                <br>
+                <span class="has-text-grey-light is-size-7">
+                  ${new Date(c.created_at).toLocaleString()}
+                </span>
+              </p>
+              <p>${escapeHtml(c.comment)}</p>
+            </div>
+          </div>
+        </article>
+      `).join('');
+    } catch (err) {
+      console.error('Failed to load comments:', err);
+      list.innerHTML = '<div class="notification is-warning is-light">Failed to load comments.</div>';
+    }
+  }
+
+  // Submit comment
+  document.getElementById('comment-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const form = e.target;
+    const submitBtn = document.getElementById('submit-btn');
+    const messageDiv = document.getElementById('form-message');
+
+    const data = {
+      slug,
+      name: form.name.value.trim(),
+      email: form.email.value.trim() || null,
+      comment: form.comment.value.trim()
+    };
+
+    submitBtn.disabled = true;
+    submitBtn.classList.add('is-loading');
+    messageDiv.innerHTML = '';
+
+    try {
+      const res = await fetch(`${apiUrl}/api/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const result = await res.json();
+
+      if (res.ok) {
+        messageDiv.innerHTML = '<div class="notification is-success is-light">Comment posted successfully!</div>';
+        form.reset();
+        setTimeout(() => loadComments(), 500);
+      } else {
+        throw new Error(result.error || 'Failed to post comment');
+      }
+    } catch (err) {
+      messageDiv.innerHTML = `<div class="notification is-danger is-light">Error: ${err.message}</div>`;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('is-loading');
+    }
+  });
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Load comments on page load
+  loadComments();
+</script>
