@@ -9,41 +9,118 @@ let posts = [];
 
 try {
   const files = await readdir(contentDir);
-  const postFiles = files.filter(f => f.endsWith('.json'));
+  const postFiles = files.filter(f => f.endsWith('.md'));
 
-  for (const file of postFiles) {
-    const content = await import(`../content/posts/${file}`);
-    posts.push(content.default);
-  }
+  // Import frontmatter from each post
+  const postPromises = postFiles.map(async (file) => {
+    const slug = file.replace('.md', '');
+    const module = await import(`../content/posts/${file}`);
+    return {
+      slug,
+      ...module.frontmatter,
+      publishedAt: new Date(module.frontmatter.publishedAt)
+    };
+  });
 
-  // Sort by date, newest first
-  posts.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-} catch (e) {
-  console.log('No posts directory yet');
+  posts = await Promise.all(postPromises);
+  posts.sort((a, b) => b.publishedAt - a.publishedAt);
+} catch (error) {
+  console.error('Error reading posts:', error);
 }
+
+const latestPosts = posts.slice(0, 5);
 ---
 
-<Layout title="My Blog - Home">
-  <h1>Latest Posts</h1>
+<Layout title="Home - My Blog" description="Latest blog posts and updates">
+  <!-- Hero Section -->
+  <section class="hero is-primary is-medium">
+    <div class="hero-body">
+      <div class="container has-text-centered">
+        <h1 class="title is-1">
+          Welcome to My Blog
+        </h1>
+        <p class="subtitle is-4">
+          Thoughts, stories, and ideas
+        </p>
+      </div>
+    </div>
+  </section>
 
-  {posts.length === 0 ? (
-    <p>No posts yet. Run <code>python scripts/generate_post.py</code> to create your first post!</p>
-  ) : (
-    <ul class="post-list">
-      {posts.slice(0, 10).map(post => (
-        <li class="post-item">
-          <h2><a href={`/posts/${post.slug}`}>{post.title}</a></h2>
-          <div class="post-meta">
-            Published on {new Date(post.publishedAt).toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
-          </div>
-          <p class="post-excerpt">{post.excerpt}</p>
-          <a href={`/posts/${post.slug}`} class="read-more">Read More →</a>
-        </li>
-      ))}
-    </ul>
-  )}
+  <!-- Latest Posts -->
+  <section class="section">
+    <div class="container">
+      <h2 class="title is-3 mb-5">Latest Posts</h2>
+
+      {latestPosts.length === 0 ? (
+        <div class="notification is-info is-light">
+          <p>No posts yet. Check back soon!</p>
+        </div>
+      ) : (
+        <div class="columns is-multiline">
+          {latestPosts.map((post) => (
+            <div class="column is-12">
+              <div class="card mb-5">
+                <div class="card-content">
+                  <div class="content">
+                    <h3 class="title is-4">
+                      <a href={`/posts/${post.slug}`}>{post.title}</a>
+                    </h3>
+
+                    <div class="post-meta mb-3">
+                      <span class="icon-text">
+                        <span class="icon">
+                          <i class="fas fa-calendar"></i>
+                        </span>
+                        <span>{post.publishedAt.toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}</span>
+                      </span>
+
+                      {post.tags && post.tags.length > 0 && (
+                        <span class="ml-4">
+                          <span class="icon-text">
+                            <span class="icon">
+                              <i class="fas fa-tags"></i>
+                            </span>
+                            <span>
+                              {post.tags.map((tag, i) => (
+                                <span>
+                                  {tag}{i < post.tags.length - 1 ? ', ' : ''}
+                                </span>
+                              ))}
+                            </span>
+                          </span>
+                        </span>
+                      )}
+                    </div>
+
+                    {post.excerpt && (
+                      <p class="post-excerpt">{post.excerpt}</p>
+                    )}
+
+                    <a href={`/posts/${post.slug}`} class="button is-primary is-light mt-3">
+                      Read More →
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {posts.length > 5 && (
+        <div class="has-text-centered mt-5">
+          <a href="/archive" class="button is-primary is-outlined">
+            <span class="icon">
+              <i class="fas fa-archive"></i>
+            </span>
+            <span>View All Posts</span>
+          </a>
+        </div>
+      )}
+    </div>
+  </section>
 </Layout>
