@@ -1,0 +1,125 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { readdir } from 'node:fs/promises';
+
+export async function getStaticPaths() {
+  const contentDir = './src/content/posts';
+  let posts = [];
+
+  try {
+    const files = await readdir(contentDir);
+    const postFiles = files.filter(f => f.endsWith('.json'));
+
+    for (const file of postFiles) {
+      const content = await import(`../../content/posts/${file}`);
+      posts.push(content.default);
+    }
+  } catch (e) {
+    console.log('No posts directory yet');
+  }
+
+  return posts.map(post => ({
+    params: { slug: post.slug },
+    props: { post }
+  }));
+}
+
+const { post } = Astro.props;
+const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://your-blog-api.workers.dev';
+---
+
+<Layout 
+  title={post.title} 
+  description={post.excerpt}
+  publishedAt={post.publishedAt}
+>
+  <article>
+    <header class="post-header">
+      <h1 class="post-title">{post.title}</h1>
+      <div class="post-meta">
+        Published on {new Date(post.publishedAt).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long', 
+          day: 'numeric'
+        })}
+        {post.author && ` by ${post.author}`}
+      </div>
+    </header>
+
+    <div class="post-content" set:html={post.content} />
+  </article>
+
+  <section class="comments-section">
+    <h2>Comments</h2>
+
+    <form class="comment-form" id="comment-form">
+      <input type="text" name="author" placeholder="Your Name" required>
+      <input type="email" name="email" placeholder="Your Email (optional)">
+      <textarea name="text" rows="5" placeholder="Your Comment" required></textarea>
+      <button type="submit">Submit Comment</button>
+    </form>
+
+    <div id="comments-list">
+      <p>Loading comments...</p>
+    </div>
+  </section>
+
+  <script define:vars={{ slug: post.slug, apiUrl }}>
+    // Load comments
+    async function loadComments() {
+      try {
+        const response = await fetch(`${apiUrl}/api/comments?slug=${slug}`);
+        const data = await response.json();
+
+        const commentsList = document.getElementById('comments-list');
+
+        if (data.comments.length === 0) {
+          commentsList.innerHTML = '<p>No comments yet. Be the first to comment!</p>';
+        } else {
+          commentsList.innerHTML = data.comments.map(comment => `
+            <div class="comment">
+              <div class="comment-author">${comment.author_name}</div>
+              <div class="comment-date">${new Date(comment.created_at).toLocaleString()}</div>
+              <div class="comment-text">${comment.comment_text}</div>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+        document.getElementById('comments-list').innerHTML = '<p>Failed to load comments.</p>';
+      }
+    }
+
+    // Submit comment
+    document.getElementById('comment-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(e.target);
+      const data = {
+        slug: slug,
+        author: formData.get('author'),
+        email: formData.get('email'),
+        text: formData.get('text')
+      };
+
+      try {
+        const response = await fetch(`${apiUrl}/api/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          alert('Comment submitted successfully!');
+          e.target.reset();
+          loadComments();
+        } else {
+          alert('Failed to submit comment');
+        }
+      } catch (error) {
+        alert('Error submitting comment');
+      }
+    });
+
+    loadComments();
+  </script>
+</Layout>
