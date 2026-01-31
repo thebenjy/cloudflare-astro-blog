@@ -2,57 +2,153 @@
 interface Props {
   title: string;
   description?: string;
-  publishedAt?: string;
+  image?: string;
 }
 
-const { title, description = 'A modern blog built with Astro', publishedAt } = Astro.props;
+const { title, description = "A simple blog built with Astro and Cloudflare", image = "/og-image.jpg" } = Astro.props;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 ---
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{title}</title>
-  <meta name="description" content={description}>
-  <link rel="canonical" href={canonicalURL}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonicalURL} />
 
-  <!-- Open Graph / Facebook -->
-  <meta property="og:type" content="article">
-  <meta property="og:url" content={canonicalURL}>
-  <meta property="og:title" content={title}>
-  <meta property="og:description" content={description}>
-  {publishedAt && <meta property="article:published_time" content={publishedAt}>}
+    <!-- Bulma CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:url" content={canonicalURL}>
-  <meta name="twitter:title" content={title}>
-  <meta name="twitter:description" content={description}>
+    <!-- SEO -->
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
 
-  <link rel="stylesheet" href="/styles/main.css">
-</head>
-<body>
-  <header class="site-header">
-    <div class="container">
-      <h1 class="site-title"><a href="/">My Blog</a></h1>
-      <nav>
-        <a href="/">Home</a>
-        <a href="/archive">Archive</a>
-        <a href="/about">About</a>
-      </nav>
-    </div>
-  </header>
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={new URL(image, Astro.url)} />
 
-  <main class="container">
-    <slot />
-  </main>
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={canonicalURL} />
+    <meta property="twitter:title" content={title} />
+    <meta property="twitter:description" content={description} />
+    <meta property="twitter:image" content={new URL(image, Astro.url)} />
 
-  <footer class="site-footer">
-    <div class="container">
-      <p>&copy; {new Date().getFullYear()} My Blog. All rights reserved.</p>
-    </div>
-  </footer>
-</body>
+    <style>
+      /* Custom styles on top of Bulma */
+      .navbar {
+        box-shadow: 0 2px 4px rgba(0,0,0,.1);
+      }
+
+      .content pre {
+        background: #f5f5f5;
+        padding: 1.5rem;
+        border-radius: 6px;
+        overflow-x: auto;
+      }
+
+      .content code {
+        background: #f5f5f5;
+        padding: 0.2em 0.4em;
+        border-radius: 3px;
+        font-size: 0.9em;
+      }
+
+      .content pre code {
+        background: none;
+        padding: 0;
+      }
+
+      .post-meta {
+        color: #7a7a7a;
+        font-size: 0.95rem;
+      }
+
+      .post-excerpt {
+        color: #4a4a4a;
+        line-height: 1.7;
+      }
+
+      footer {
+        background: #f5f5f5;
+        margin-top: 3rem;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navbar -->
+    <nav class="navbar is-light" role="navigation" aria-label="main navigation">
+      <div class="container">
+        <div class="navbar-brand">
+          <a class="navbar-item" href="/">
+            <strong>My Blog</strong>
+          </a>
+
+          <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMenu">
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+          </a>
+        </div>
+
+        <div id="navbarMenu" class="navbar-menu">
+          <div class="navbar-end">
+            <a class="navbar-item" href="/">
+              <span class="icon"><i class="fas fa-home"></i></span>
+              <span>Home</span>
+            </a>
+            <a class="navbar-item" href="/archive">
+              <span class="icon"><i class="fas fa-archive"></i></span>
+              <span>Archive</span>
+            </a>
+            <a class="navbar-item" href="/about">
+              <span class="icon"><i class="fas fa-user"></i></span>
+              <span>About</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <section class="section">
+      <div class="container">
+        <slot />
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="content has-text-centered">
+        <p>
+          <strong>My Blog</strong> powered by <a href="https://astro.build" target="_blank">Astro</a> 
+          and <a href="https://pages.cloudflare.com" target="_blank">Cloudflare Pages</a>.
+        </p>
+        <p class="is-size-7">
+          &copy; {new Date().getFullYear()} All rights reserved.
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      // Mobile menu toggle
+      document.addEventListener('DOMContentLoaded', () => {
+        const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+        $navbarBurgers.forEach( el => {
+          el.addEventListener('click', () => {
+            const target = el.dataset.target;
+            const $target = document.getElementById(target);
+            el.classList.toggle('is-active');
+            $target.classList.toggle('is-active');
+          });
+        });
+      });
+    </script>
+  </body>
 </html>
