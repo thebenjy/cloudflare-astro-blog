@@ -1,0 +1,7 @@
+{
+  "title": "Welcome to My Blog",
+  "content": "<h2>Hello, World!</h2><p>This is an example blog post generated using the automated Python script. The system supports full HTML content, making it easy to create rich, formatted posts.</p><h3>Features</h3><ul><li>Automated content generation from JSON</li><li>Static site generation with Astro</li><li>Dynamic comments via Hono + D1</li><li>GitHub Actions for CI/CD</li><li>Classic, readable CSS styling</li></ul><p>To create your own post, simply run:</p><pre><code>python scripts/generate_post.py your-post.json</code></pre><p>Then commit and push to deploy automatically!</p>",
+  "excerpt": "An introduction to this automated blogging platform",
+  "author": "Blog Admin",
+  "tags": ["meta", "introduction", "getting-started"]
+}
